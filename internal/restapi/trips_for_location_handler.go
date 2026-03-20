@@ -114,11 +114,14 @@ func (api *RestAPI) tripsForLocationHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	references := api.BuildReference(w, r, ctx, ReferenceParams{
+	references, ok := api.BuildReference(w, r, ctx, ReferenceParams{
 		IncludeTrip: includeTrip,
 		Stops:       stops,
 		Trips:       result,
 	})
+	if !ok {
+		return
+	}
 	response := models.NewListResponseWithRange(result, references, checkIfOutOfBounds(api, lat, lon, latSpan, lonSpan, 0), api.Clock, false)
 	api.sendResponse(w, r, response)
 }
@@ -465,7 +468,7 @@ type ReferenceParams struct {
 	Trips       []models.TripsForLocationListEntry
 }
 
-func (api *RestAPI) BuildReference(w http.ResponseWriter, r *http.Request, ctx context.Context, params ReferenceParams) models.ReferencesModel {
+func (api *RestAPI) BuildReference(w http.ResponseWriter, r *http.Request, ctx context.Context, params ReferenceParams) (models.ReferencesModel, bool) {
 	refs := &referenceBuilder{
 		api:           api,
 		ctx:           ctx,
@@ -475,10 +478,10 @@ func (api *RestAPI) BuildReference(w http.ResponseWriter, r *http.Request, ctx c
 
 	if err := refs.build(params); err != nil {
 		api.serverErrorResponse(w, r, err)
-		return models.ReferencesModel{}
+		return models.ReferencesModel{}, false
 	}
 
-	return refs.toReferencesModel()
+	return refs.toReferencesModel(), true
 }
 
 type referenceBuilder struct {
