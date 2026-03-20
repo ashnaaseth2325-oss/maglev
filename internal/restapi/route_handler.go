@@ -25,9 +25,14 @@ func (api *RestAPI) routeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if route.AgencyID != agencyID {
+		api.sendNotFound(w, r)
+		return
+	}
+
 	routeData := models.NewRoute(
-		utils.FormCombinedID(agencyID, route.ID),
-		agencyID,
+		utils.FormCombinedID(route.AgencyID, route.ID),
+		route.AgencyID,
 		route.ShortName.String,
 		route.LongName.String,
 		route.Desc.String,
@@ -38,7 +43,7 @@ func (api *RestAPI) routeHandler(w http.ResponseWriter, r *http.Request) {
 
 	references := models.NewEmptyReferences()
 
-	agency, err := api.GtfsManager.GtfsDB.Queries.GetAgency(ctx, agencyID)
+	agency, err := api.GtfsManager.GtfsDB.Queries.GetAgency(ctx, route.AgencyID)
 	if err == nil {
 		agencyModel := models.NewAgencyReference(
 			agency.ID,
